@@ -193,10 +193,32 @@ def main():
                         model_option, repo_path, dataset_path
                     )
                     
-                    # For demo purposes, we'll use the first bug report's embedding
-                    # In a real app, you would encode the user's input
-                    bug_id = 1
-                    ranked_files = similarity_engine.rank_files(bug_id, top_k=top_k)
+                    # Encode the user's bug report
+                    user_bug_embedding = model.encode_text(bug_report_input)
+                    
+                    # Compare with all code files
+                    similarities = []
+                    for filepath, code_embedding in similarity_engine.code_embeddings.items():
+                        similarity = similarity_engine.compute_cosine_similarity(
+                            user_bug_embedding[0], code_embedding
+                        )
+                        similarities.append({
+                            'filepath': filepath,
+                            'similarity': similarity
+                        })
+                    
+                    # Sort by similarity (descending)
+                    similarities.sort(key=lambda x: x['similarity'], reverse=True)
+                    
+                    # Get top-k results
+                    ranked_files = []
+                    for idx, result in enumerate(similarities[:top_k], 1):
+                        ranked_files.append({
+                            'rank': idx,
+                            'filepath': result['filepath'],
+                            'similarity': result['similarity'],
+                            'confidence': result['similarity'] * 100
+                        })
                     
                     # Display results
                     st.success("Bug localization complete!")
