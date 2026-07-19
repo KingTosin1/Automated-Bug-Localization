@@ -58,6 +58,10 @@ class RepositoryExtractor:
             dirs[:] = [d for d in dirs if not d.startswith('.') and d != '__pycache__']
             
             for file in files:
+                # Skip __init__.py files as they typically don't contain bugs
+                if file == '__init__.py':
+                    continue
+                
                 if file.endswith('.py'):
                     full_path = Path(root) / file
                     relative_path = full_path.relative_to(self.repo_path)
@@ -67,9 +71,16 @@ class RepositoryExtractor:
                         with open(full_path, 'r', encoding='utf-8') as f:
                             source_code = f.read()
                         
+                        # Skip files with only comments or very short files
+                        lines = source_code.splitlines()
+                        code_lines = [line for line in lines if line.strip() and not line.strip().startswith('#')]
+                        
+                        if len(code_lines) < 3:  # Skip files with less than 3 lines of actual code
+                            continue
+                        
                         # Get file stats
                         file_size = full_path.stat().st_size
-                        num_lines = len(source_code.splitlines())
+                        num_lines = len(lines)
                         
                         file_info = {
                             'filename': file,
